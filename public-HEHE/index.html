@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CardioMap — Chittagong Healthcare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #FDF8F0; --warm: #F5EDD8;
+      --rust: #C0392B; --rust2: #E74C3C;
+      --navy: #1a2540; --navy2: #253055;
+      --gold: #D4A017; --gold2: #F0C040;
+      --green: #27AE60; --pink: #E91E8C;
+      --text: #1C1C1E; --muted: #6B6B6B;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--cream); color: var(--text); overflow-x: hidden; }
+
+    /* ══ TICKER ══ */
+    .ticker-bar { background: var(--navy); height: 40px; display: flex; align-items: center; overflow: hidden; position: relative; }
+    .ticker-label { background: var(--rust); color: white; padding: 0 16px; height: 100%; display: flex; align-items: center; font-size: 0.68rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; z-index: 2; }
+    .ticker-track { flex: 1; overflow: hidden; }
+    .ticker-inner { display: flex; width: max-content; animation: ticker 40s linear infinite; }
+    .ticker-inner:hover { animation-play-state: paused; }
+    .t-item { color: rgba(255,255,255,0.75); font-size: 0.75rem; font-weight: 500; padding: 0 28px; white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px; height: 40px; }
+    .t-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-red { background: #FF6B6B; }
+    .dot-yellow { background: #FFD93D; }
+    @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* ══ NAV ══ */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(26,37,64,0.97); backdrop-filter: blur(16px);
+      border-bottom: 2px solid var(--gold);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 48px;
+      flex-wrap: wrap;
+    }
+    .nav-logo { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 900; }
+    .nav-logo .c { color: var(--rust2); }
+    .nav-logo .m { color: var(--gold2); }
+    .nav-logo small { display: block; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.5rem; color: rgba(255,255,255,0.35); font-weight: 400; letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; }
+
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .app-logo-img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 2px solid var(--gold); }
+    .nav-btns { display: flex; gap: 8px; }
+    .btn { padding: 9px 20px; border-radius: 7px; font-weight: 600; font-size: 0.82rem; cursor: pointer; text-decoration: none; transition: all 0.22s; border: none; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-ghost { background: transparent; border: 1.5px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); }
+    .btn-ghost:hover { border-color: var(--gold2); color: var(--gold2); }
+    .btn-gold { background: var(--gold); color: var(--navy); font-weight: 800; }
+    .btn-gold:hover { background: var(--gold2); transform: translateY(-1px); }
+
+    /* ══ HERO (fully restored) ══ */
+    .hero {
+      min-height: 90vh;
+      background: linear-gradient(150deg, var(--navy) 0%, #1E2D5A 55%, #2A1535 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 80px 40px 60px; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 15% 40%, rgba(212,160,23,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 60%, rgba(192,57,43,0.07) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .ecg-wrap { position: absolute; bottom: 50px; left: 0; right: 0; height: 50px; overflow: hidden; opacity: 0.12; pointer-events: none; }
+    .ecg-svg { width: 200%; animation: ecg 4s linear infinite; }
+    @keyframes ecg { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 18px; border-radius: 100px; border: 1px solid rgba(212,160,23,0.35); background: rgba(212,160,23,0.07); color: var(--gold2); font-size: 0.75rem; font-weight: 600; margin-bottom: 28px; animation: fadeUp 0.6s 0.1s both; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.6)} }
+
+    .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.8rem, 8vw, 5.5rem); font-weight: 900; line-height: 1.05; letter-spacing: -2px; color: white; margin-bottom: 18px; animation: fadeUp 0.6s 0.2s both; }
+    .hero h1 em { color: var(--rust2); font-style: italic; }
+
+    .hero-sub { font-size: 1rem; color: rgba(255,255,255,0.45); max-width: 440px; line-height: 1.8; margin-bottom: 44px; font-weight: 300; animation: fadeUp 0.6s 0.3s both; }
+
+    .map-cta-wrap { animation: fadeUp 0.6s 0.35s both; margin-bottom: 20px; }
+    .map-cta {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 20px 52px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--rust), #A93226);
+      color: white; font-weight: 800; font-size: 1.25rem;
+      text-decoration: none; border: none; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(192,57,43,0.45);
+      transition: all 0.25s; font-family: inherit;
+    }
+    .map-cta:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(192,57,43,0.55); background: linear-gradient(135deg, var(--rust2), var(--rust)); }
+    .map-cta .arrow { font-size: 1.4rem; transition: transform 0.2s; }
+    .map-cta:hover .arrow { transform: translateX(5px); }
+
+    .hero-secondary { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; animation: fadeUp 0.6s 0.45s both; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ══ SYMPTOMS SECTION ══ */
+    .symptoms-section { padding: 80px 60px; background: white; position: relative; }
+    .symptoms-section::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--rust), var(--gold), #1a8a6a); }
+
+    .sec-head { text-align: center; margin-bottom: 52px; }
+    .sec-tag { font-size: 0.68rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--rust); margin-bottom: 10px; }
+    .sec-title { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; color: var(--navy); }
+
+    .sym-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 980px; margin: 0 auto; }
+
+    .sym-card { border-radius: 20px; padding: 34px; position: relative; overflow: hidden; opacity: 0; transform: translateY(28px); transition: opacity 0.65s ease, transform 0.65s ease; }
+    .sym-card.in { opacity: 1; transform: translateY(0); }
+    .sym-card.heart { background: linear-gradient(145deg, #FFF8F8, #FFECEC); border: 1.5px solid #FFCDD2; transition-delay: 0s; }
+    .sym-card.stroke { background: linear-gradient(145deg, #FFFDF0, #FFF8DC); border: 1.5px solid #FFE082; transition-delay: 0.15s; }
+
+    .sc-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .heart .sc-title { color: var(--rust); }
+    .stroke .sc-title { color: #9A7000; }
+    .sc-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 22px; font-weight: 500; }
+
+    .sym-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+
+    .sym-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      opacity: 0; transform: translateX(-18px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .sym-item:last-child { border-bottom: none; }
+    .sym-item.in { opacity: 1; transform: translateX(0); }
+
+    .sym-num { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+    .heart .sym-num { background: var(--rust); color: white; }
+    .stroke .sym-num { background: #B8860B; color: white; }
+    .sym-text { font-size: 0.85rem; line-height: 1.55; color: #444; }
+    .sym-text b { color: var(--text); font-weight: 700; }
+
+    .alert-box { margin-top: 20px; padding: 14px 18px; border-radius: 10px; font-size: 0.8rem; line-height: 1.6; }
+    .heart .alert-box { background: rgba(192,57,43,0.06); border-left: 3px solid var(--rust); color: #7A1F1F; }
+    .stroke .alert-box { background: rgba(212,160,23,0.08); border-left: 3px solid var(--gold); color: #7A5F00; }
+    .alert-box b { display: block; margin-bottom: 3px; font-size: 0.83rem; }
+
+    /* ══ ABOUT ══ */
+    .about { background: var(--navy); padding: 80px 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .about h2 { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 900; color: white; margin-bottom: 14px; line-height: 1.2; }
+    .about h2 span { color: var(--gold2); }
+    .about > div > p { color: rgba(255,255,255,0.45); font-size: 0.9rem; line-height: 1.8; margin-bottom: 28px; }
+    .feats { display: flex; flex-direction: column; gap: 13px; }
+    .feat { display: flex; align-items: center; gap: 13px; }
+    .ficon { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .ft { font-size: 0.85rem; color: rgba(255,255,255,0.65); line-height: 1.45; }
+    .ft b { color: white; display: block; }
+    .cta-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(212,160,23,0.2); border-radius: 20px; padding: 44px 36px; text-align: center; }
+    .cta-box .big { font-size: 4rem; margin-bottom: 16px; display: block; }
+    .cta-box h3 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: white; margin-bottom: 10px; }
+    .cta-box p { color: rgba(255,255,255,0.4); font-size: 0.85rem; line-height: 1.7; margin-bottom: 24px; }
+
+    /* ══ FOOTER ══ */
+    footer { background: #0C1020; padding: 24px 60px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    footer .fl { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; }
+    footer .fl .c { color: var(--rust2); }
+    footer .fl .m { color: var(--gold2); }
+    footer p { font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+
+    /* ══ MODAL ══ */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #111825; border: 1px solid rgba(212,160,23,0.2); border-radius: 20px; padding: 38px; width: 100%; max-width: 420px; position: relative; animation: mIn 0.3s ease; }
+    @keyframes mIn { from{opacity:0;transform:scale(0.95) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .mcl { position: absolute; top: 14px; right: 18px; background: none; border: none; color: rgba(255,255,255,0.3); font-size: 1.3rem; cursor: pointer; }
+    .mcl:hover { color: white; }
+    .modal h2 { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: white; margin-bottom: 5px; }
+    .modal .sub { color: rgba(255,255,255,0.35); font-size: 0.82rem; margin-bottom: 24px; }
+    .fg { margin-bottom: 14px; }
+    .fg label { display: block; font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .fg input, .fg select { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 9px; color: white; font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+    .fg input:focus, .fg select:focus { border-color: var(--gold); }
+    .fg select option { background: #111825; }
+    .fr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .bsub { width: 100%; padding: 13px; border-radius: 9px; border: none; background: var(--gold); color: var(--navy); font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: all 0.22s; margin-top: 6px; font-family: inherit; }
+    .bsub:hover { background: var(--gold2); transform: translateY(-1px); }
+    .smsg { margin-top: 12px; padding: 11px 14px; border-radius: 8px; font-size: 0.82rem; display: none; }
+    .smsg.ok { display:block; background: rgba(39,174,96,0.1); border: 1px solid var(--green); color: var(--green); }
+    .smsg.err { display:block; background: rgba(192,57,43,0.1); border: 1px solid var(--rust); color: var(--rust2); }
+    .rtabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 18px; }
+    .rtab { padding: 10px 6px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.35); font-size: 0.68rem; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; font-family: inherit; text-transform: uppercase; letter-spacing: 0.5px; }
+    .rtab .ri { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+    .rtab.active { border-color: var(--gold); background: rgba(212,160,23,0.08); color: var(--gold2); }
+
+    /* Profile dashboard (non-intrusive, placed after about) */
+    .profile-section {
+      display: none;
+      background: var(--cream);
+      border-radius: 24px;
+      margin: 40px 60px;
+      padding: 32px;
+      border: 1px solid rgba(212,160,23,0.3);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    }
+    .profile-section h3 {
+      font-family: 'Playfair Display', serif;
+      color: var(--navy);
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      border-left: 5px solid var(--gold);
+      padding-left: 16px;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .profile-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+    .profile-card h4 {
+      color: var(--rust);
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+    .profile-card p {
+      margin: 8px 0;
+      font-size: 0.9rem;
+    }
+    .record-list {
+      list-style: none;
+      margin-top: 10px;
+    }
+    .record-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 0.85rem;
+    }
+    .logout-btn {
+      margin-top: 20px;
+      text-align: right;
+    }
+
+    @media(max-width:768px) {
+      nav { padding: 12px 20px; }
+      .symptoms-section, .about { padding: 60px 24px; }
+      .sym-grid, .about { grid-template-columns: 1fr; }
+      .hero { padding: 60px 24px 40px; }
+      .profile-section { margin: 20px; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TICKER BAR (fully restored) -->
+<div class="ticker-bar">
+  <div class="ticker-label">⚠ Know the Signs</div>
+  <div class="ticker-track">
+    <div class="ticker-inner">
+      <div class="t-item"><span class="t-dot dot-red"></span>HEART ATTACK: Chest pressure or tightness</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Pain spreading to left arm, neck or jaw</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Shortness of breath with or without chest pain</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Cold sweat, nausea or sudden dizziness</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>STROKE: Face drooping on one side</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Arm weakness — one arm drifts downward</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Slurred or confused speech</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Sudden severe headache with no cause</div>
+      <!-- duplicate for seamless loop -->
+      <div class="t-item"><span class="t-dot dot-red"></span>HEART ATTACK: Chest pressure or tightness</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Pain spreading to left arm, neck or jaw</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Shortness of breath with or without chest pain</div>
+      <div class="t-item"><span class="t-dot dot-red"></span>Cold sweat, nausea or sudden dizziness</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>STROKE: Face drooping on one side</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Arm weakness — one arm drifts downward</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Slurred or confused speech</div>
+      <div class="t-item"><span class="t-dot dot-yellow"></span>Sudden severe headache with no cause</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-logo">
+    <span class="c">Cardio</span><span class="m">Map</span>
+    <small>Chittagong Healthcare Network</small>
+  </div>
+  <div class="nav-right">
+    <div class="nav-btns" id="navButtons">
+      <button class="btn btn-ghost" onclick="openM('login')">Log In</button>
+      <button class="btn btn-ghost" onclick="openM('register')">Register</button>
+    </div>
+    <div class="nav-btns" id="userNav" style="display: none;">
+      <button class="btn btn-ghost" onclick="showProfile()">My Profile</button>
+      <button class="btn btn-ghost" onclick="logout()">Logout</button>
+    </div>
+    <img class="app-logo-img" src="logo.png" alt="CardioMap Logo" onerror="this.style.display='none'"/>
+  </div>
+</nav>
+
+<!-- HERO SECTION (fully restored) -->
+<section class="hero">
+  <div class="ecg-wrap">
+    <svg class="ecg-svg" viewBox="0 0 1200 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polyline points="0,25 80,25 95,25 105,4 115,46 125,25 135,25 200,25 215,25 225,4 235,46 245,25 255,25 320,25 335,25 345,4 355,46 365,25 375,25 440,25 455,25 465,4 475,46 485,25 495,25 560,25 575,25 585,4 595,46 605,25" stroke="#D4A017" stroke-width="1.5" fill="none"/>
+      <polyline points="605,25 680,25 695,25 705,4 715,46 725,25 735,25 800,25 815,25 825,4 835,46 845,25 855,25 920,25 935,25 945,4 955,46 965,25 975,25 1040,25 1055,25 1065,4 1075,46 1085,25 1095,25 1160,25 1175,25 1185,4 1195,46 1200,25" stroke="#D4A017" stroke-width="1.5" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="hero-badge"><span class="live-dot"></span>Live Map — Chittagong</div>
+
+  <h1>Find Care,<br/><em>Right Now.</em></h1>
+  <p class="hero-sub">Hospitals, pharmacies and emergency services across Chittagong — with real-time distance, bed counts and ambulance status.</p>
+
+  <div class="map-cta-wrap">
+    <a href="map.html" class="map-cta">Open Live Map <span class="arrow">→</span></a>
+  </div>
+
+  <div class="hero-secondary">
+    <button class="btn btn-ghost" style="color:rgba(255,255,255,0.7)" onclick="openM('register')">Register Free</button>
+    <button class="btn btn-ghost" style="color:rgba(255,255,255,0.7)" onclick="document.querySelector('.symptoms-section').scrollIntoView({behavior:'smooth'})">Learn Symptoms ↓</button>
+  </div>
+</section>
+
+<!-- SYMPTOMS SECTION (fully restored) -->
+<section class="symptoms-section">
+  <div class="sec-head">
+    <div class="sec-tag">Emergency Awareness</div>
+    <h2 class="sec-title">Know the Warning Signs</h2>
+    <p style="color:var(--muted);font-size:0.87rem;margin-top:10px;max-width:460px;margin-left:auto;margin-right:auto">Every second counts. Recognizing symptoms early can save a life.</p>
+  </div>
+
+  <div class="sym-grid">
+    <!-- HEART ATTACK -->
+    <div class="sym-card heart" id="hcard">
+      <h3 class="sc-title">Heart Attack</h3>
+      <p class="sc-sub">Myocardial Infarction — Act within 90 minutes</p>
+      <ul class="sym-list">
+        <li class="sym-item" style="transition-delay:0.05s"><div class="sym-num">1</div><div class="sym-text"><b>Chest Pain or Pressure</b> — Tightness, squeezing or crushing in the chest lasting more than a few minutes</div></li>
+        <li class="sym-item" style="transition-delay:0.15s"><div class="sym-num">2</div><div class="sym-text"><b>Radiating Pain</b> — Discomfort spreading to left arm, shoulder, neck, back or jaw</div></li>
+        <li class="sym-item" style="transition-delay:0.25s"><div class="sym-num">3</div><div class="sym-text"><b>Shortness of Breath</b> — Difficulty breathing even at rest, with or without chest pain</div></li>
+        <li class="sym-item" style="transition-delay:0.35s"><div class="sym-num">4</div><div class="sym-text"><b>Cold Sweat or Nausea</b> — Breaking into a cold sweat, feeling sick or lightheaded suddenly</div></li>
+        <li class="sym-item" style="transition-delay:0.45s"><div class="sym-num">5</div><div class="sym-text"><b>Sudden Extreme Fatigue</b> — Unusual tiredness that comes on suddenly, especially in women</div></li>
+      </ul>
+      <div class="alert-box"><b>If you suspect a heart attack:</b>Call emergency immediately. Do not drive yourself. Chew aspirin if available and not allergic.</div>
+    </div>
+
+    <!-- STROKE -->
+    <div class="sym-card stroke" id="scard">
+      <h3 class="sc-title">Stroke — Use F.A.S.T.</h3>
+      <p class="sc-sub">Every minute = 2 million neurons lost. Act immediately.</p>
+      <ul class="sym-list">
+        <li class="sym-item" style="transition-delay:0.1s"><div class="sym-num">F</div><div class="sym-text"><b>Face Drooping</b> — One side of the face droops or feels numb. Ask the person to smile — is it uneven?</div></li>
+        <li class="sym-item" style="transition-delay:0.2s"><div class="sym-num">A</div><div class="sym-text"><b>Arm Weakness</b> — One arm is weak or numb. Ask to raise both arms — does one drift down?</div></li>
+        <li class="sym-item" style="transition-delay:0.3s"><div class="sym-num">S</div><div class="sym-text"><b>Speech Difficulty</b> — Speech is slurred, strange or impossible. Ask to repeat a simple sentence.</div></li>
+        <li class="sym-item" style="transition-delay:0.4s"><div class="sym-num">T</div><div class="sym-text"><b>Time to Call</b> — If ANY of these signs appear, call emergency immediately. Note the exact time symptoms started.</div></li>
+        <li class="sym-item" style="transition-delay:0.5s"><div class="sym-num">+</div><div class="sym-text"><b>Sudden Severe Headache</b> — The worst headache of your life, or sudden vision loss in one or both eyes</div></li>
+      </ul>
+      <div class="alert-box"><b>Golden Window:</b>Clot-busting treatment must start within 4.5 hours of stroke onset. Time is brain — act immediately.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT SECTION (fully restored) -->
+<section class="about">
+  <div>
+    <h2>Chittagong's healthcare,<br/><span>mapped for you.</span></h2>
+    <p>CardioMap gives instant access to every hospital, diagnostic center, pharmacy and rehab in Chittagong — with bed counts, doctor numbers, ambulance status and distance from your location.</p>
+    <div class="feats">
+      <div class="feat"><div class="ficon" style="background:rgba(192,57,43,0.15)">🏥</div><div class="ft"><b>Live ICU & Emergency Beds</b>See available beds updated in real time</div></div>
+      <div class="feat"><div class="ficon" style="background:rgba(212,160,23,0.15)">👨‍⚕️</div><div class="ft"><b>Doctor Count per Center</b>Know how many doctors are available</div></div>
+      <div class="feat"><div class="ficon" style="background:rgba(39,174,96,0.15)">🚑</div><div class="ft"><b>Ambulance Availability</b>Check which centers have ambulances ready</div></div>
+      <div class="feat"><div class="ficon" style="background:rgba(26,37,64,0.2)">📍</div><div class="ft"><b>Distance & Road Route</b>Real-time distance and turn-by-turn directions</div></div>
+    </div>
+  </div>
+  <div class="cta-box">
+    <span class="big">🗺️</span>
+    <h3>Open the Live Map</h3>
+    <p>No account needed. Find hospitals, pharmacies and diagnostic centers near you in seconds.</p>
+    <a href="map.html" class="map-cta" style="font-size:1rem;padding:14px 36px;display:inline-flex">Explore Map →</a>
+  </div>
+</section>
+
+<!-- PROFILE DASHBOARD (hidden by default, placed after about) -->
+<div id="profileContainer" class="profile-section" style="display: none;">
+  <h3>👤 My Health Profile</h3>
+  <div id="profileContent">Loading...</div>
+  <div class="logout-btn"><button class="btn btn-ghost" onclick="logout()">Sign out</button></div>
+</div>
+
+<!-- FOOTER (fully restored) -->
+<footer>
+  <div class="fl"><span class="c">Cardio</span><span class="m">Map</span></div>
+  <p>© 2025 CardioMap — Chittagong Healthcare Network. Built for Bangladesh.</p>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="mcl" onclick="closeM('loginModal')">✕</button>
+    <h2>Welcome back</h2>
+    <p class="sub">Log in to your CardioMap account</p>
+    <div class="fg"><label>Email</label><input type="email" id="l_email" placeholder="you@email.com"/></div>
+    <div class="fg"><label>Password</label><input type="password" id="l_password" placeholder="••••••••"/></div>
+    <button class="bsub" onclick="doLogin()">Log In</button>
+    <div class="smsg" id="lmsg"></div>
+    <p style="text-align:center;margin-top:14px;font-size:0.78rem;color:rgba(255,255,255,0.3)">No account? <span style="color:var(--gold2);cursor:pointer" onclick="swapM()">Register here</span></p>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal" style="max-width:460px">
+    <button class="mcl" onclick="closeM('registerModal')">✕</button>
+    <h2>Create account</h2>
+    <p class="sub">Choose your role to get started</p>
+    <div class="rtabs">
+      <button class="rtab active" onclick="setRole('patient',this)"><span class="ri">🏥</span>Patient</button>
+      <button class="rtab" onclick="setRole('emergency_contact',this)"><span class="ri">🚨</span>Emergency</button>
+      <button class="rtab" onclick="setRole('data_manager',this)"><span class="ri">🏢</span>Manager</button>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>First Name</label><input type="text" id="r_fn" placeholder="Prerana"/></div>
+      <div class="fg"><label>Last Name</label><input type="text" id="r_ln" placeholder="Sharma"/></div>
+    </div>
+    <div class="fg"><label>Email</label><input type="email" id="r_em" placeholder="you@email.com"/></div>
+    <div class="fg"><label>Password</label><input type="password" id="r_pw" placeholder="••••••••"/></div>
+    <div class="fr2">
+      <div class="fg"><label>Phone</label><input type="text" id="r_ph" placeholder="+880..."/></div>
+      <div class="fg"><label>City</label><input type="text" id="r_ci" placeholder="Chittagong" value="Chittagong"/></div>
+    </div>
+    <div id="pExtra">
+      <div class="fr2">
+        <div class="fg"><label>Date of Birth</label><input type="date" id="r_dob"/></div>
+        <div class="fg"><label>Blood Group</label><select id="r_bg"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></div>
+      </div>
+      <div class="fr2">
+        <div class="fg"><label>Gender</label><select id="r_gd"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div class="fg"><label>Disease Type</label><input type="text" id="r_di" placeholder="e.g. Diabetes / None"/></div>
+      </div>
+    </div>
+    <button class="bsub" onclick="doRegister()">Create Account</button>
+    <div class="smsg" id="rmsg"></div>
+  </div>
+</div>
+
+<script>
+  // ── Scroll animation (IntersectionObserver for symptom cards) ──
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        e.target.querySelectorAll('.sym-item').forEach(i => i.classList.add('in'));
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.sym-card').forEach(c => obs.observe(c));
+
+  // ── API & Auth Logic (non-intrusive) ──
+  const API_BASE = '/api';
+
+  async function fetchJson(url, options = {}) {
+    const res = await fetch(url, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options.headers }
+    });
+    return res.json();
+  }
+
+  function showMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'smsg ' + type;
+  }
+
+  function updateNavBar() {
+    const userStr = localStorage.getItem('cardioMapUser');
+    const isLoggedIn = userStr && JSON.parse(userStr);
+    const loginRegDiv = document.getElementById('navButtons');
+    const userNavDiv = document.getElementById('userNav');
+    if (isLoggedIn) {
+      loginRegDiv.style.display = 'none';
+      userNavDiv.style.display = 'flex';
+    } else {
+      loginRegDiv.style.display = 'flex';
+      userNavDiv.style.display = 'none';
+      // hide profile section if open
+      document.getElementById('profileContainer').style.display = 'none';
+    }
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('l_email').value;
+    const password = document.getElementById('l_password').value;
+    try {
+      const data = await fetchJson(`${API_BASE}/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      if (data.success) {
+        localStorage.setItem('cardioMapUser', JSON.stringify(data.user));
+        showMsg('lmsg', 'Logged in! Redirecting...', 'ok');
+        updateNavBar();
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showMsg('lmsg', data.message || 'Wrong email or password.', 'err');
+      }
+    } catch (err) {
+      showMsg('lmsg', 'Server error. Is backend running?', 'err');
+    }
+  }
+
+  async function doRegister() {
+    const role = window.currentRole || 'patient';
+    const body = {
+      firstName: document.getElementById('r_fn').value,
+      lastName: document.getElementById('r_ln').value,
+      email: document.getElementById('r_em').value,
+      password: document.getElementById('r_pw').value,
+      role: role,
+      phone: document.getElementById('r_ph').value,
+      street: '',
+      city: document.getElementById('r_ci').value,
+      postalCode: ''
+    };
+    try {
+      const regData = await fetchJson(`${API_BASE}/register`, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      if (!regData.success) {
+        showMsg('rmsg', regData.message || 'Registration failed', 'err');
+        return;
+      }
+      const profileID = regData.profileID;
+
+      if (role === 'patient') {
+        await fetchJson(`${API_BASE}/add-patient`, {
+          method: 'POST',
+          body: JSON.stringify({
+            userID: profileID,
+            dob: document.getElementById('r_dob').value,
+            gender: document.getElementById('r_gd').value,
+            bloodGroup: document.getElementById('r_bg').value,
+            diseaseType: document.getElementById('r_di').value
+          })
+        });
+      }
+      if (role === 'emergency_contact') {
+        await fetchJson(`${API_BASE}/add-emergency-contact`, {
+          method: 'POST',
+          body: JSON.stringify({
+            userID: profileID,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            phone: body.phone
+          })
+        });
+      }
+      showMsg('rmsg', 'Account created! Please log in.', 'ok');
+      setTimeout(() => {
+        closeM('registerModal');
+        openM('login');
+      }, 1500);
+    } catch (err) {
+      showMsg('rmsg', 'Server error. Is backend running?', 'err');
+    }
+  }
+
+  async function showProfile() {
+    const userStr = localStorage.getItem('cardioMapUser');
+    if (!userStr) {
+      alert('Please log in first.');
+      return;
+    }
+    const user = JSON.parse(userStr);
+    const profileDiv = document.getElementById('profileContainer');
+    const contentDiv = document.getElementById('profileContent');
+    profileDiv.style.display = 'block';
+    contentDiv.innerHTML = 'Loading your data...';
+    // For now, we keep a placeholder because profile page will be separate later
+    contentDiv.innerHTML = `
+      <div class="profile-grid">
+        <div class="profile-card">
+          <h4>Personal Information</h4>
+          <p><strong>Name:</strong> ${user.FirstName || user.firstName || ''} ${user.LastName || user.lastName || ''}</p>
+          <p><strong>Email:</strong> ${user.Email || user.email || ''}</p>
+          <p><strong>Phone:</strong> ${user.Phone || user.phone || '—'}</p>
+          <p><strong>City:</strong> ${user.City || user.city || 'Chittagong'}</p>
+          <p><strong>Role:</strong> ${user.Role || user.role || '—'}</p>
+        </div>
+        <div class="profile-card">
+          <h4>Coming Soon</h4>
+          <p>Full medical records, emergency contacts, and admission history will appear here once the profile backend is complete.</p>
+          <p>You can now book beds/ambulance from the map page.</p>
+        </div>
+      </div>
+    `;
+    profileDiv.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function logout() {
+    localStorage.removeItem('cardioMapUser');
+    updateNavBar();
+    window.location.reload();
+  }
+
+  // Heart/Stroke quick filters (optional)
+  function findHeartCare() {
+    window.location.href = 'map.html?filter=heart';
+  }
+  function findStrokeCare() {
+    window.location.href = 'map.html?filter=stroke';
+  }
+
+  // Add filter buttons to hero-secondary (optional)
+  document.addEventListener('DOMContentLoaded', () => {
+    updateNavBar();
+    const heroSecondary = document.querySelector('.hero-secondary');
+    if (heroSecondary && !document.getElementById('heartFilterBtn')) {
+      const heartBtn = document.createElement('button');
+      heartBtn.className = 'btn btn-ghost';
+      heartBtn.textContent = '❤️ Heart Care';
+      heartBtn.style.margin = '0 4px';
+      heartBtn.onclick = findHeartCare;
+      const strokeBtn = document.createElement('button');
+      strokeBtn.className = 'btn btn-ghost';
+      strokeBtn.textContent = '🧠 Stroke Care';
+      strokeBtn.onclick = findStrokeCare;
+      heroSecondary.appendChild(heartBtn);
+      heroSecondary.appendChild(strokeBtn);
+    }
+  });
+
+  // Modals functions
+  function openM(type) {
+    document.getElementById(type === 'login' ? 'loginModal' : 'registerModal').classList.add('open');
+  }
+  function closeM(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+  function swapM() {
+    document.getElementById('loginModal').classList.toggle('open');
+    document.getElementById('registerModal').classList.toggle('open');
+  }
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if(e.target === o) o.classList.remove('open'); });
+  });
+
+  let currentRole = 'patient';
+  function setRole(r, el) {
+    currentRole = r;
+    document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('pExtra').style.display = r==='patient'?'block':'none';
+  }
+  window.currentRole = currentRole;
+  window.setRole = setRole;
+  window.doLogin = doLogin;
+  window.doRegister = doRegister;
+  window.showProfile = showProfile;
+  window.logout = logout;
+  window.openM = openM;
+  window.closeM = closeM;
+  window.swapM = swapM;
+  window.findHeartCare = findHeartCare;
+  window.findStrokeCare = findStrokeCare;
+</script>
+</body>
+</html>

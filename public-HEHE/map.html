@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CardioMap — Chittagong Live Map</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #FDF8F0; --warm: #F5EDD8;
+      --rust: #C0392B; --gold: #D4A017; --gold2: #F0C040;
+      --teal: #1a8a6a; --navy: #1a2540;
+      --pink: #E91E8C; --green: #27AE60;
+      --border: rgba(180,140,80,0.25);
+    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--cream); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      height: 58px; background: var(--navy);
+      display: flex; align-items: center; padding: 0 20px; gap: 14px;
+      flex-shrink: 0; z-index: 1000;
+      border-bottom: 2px solid var(--gold);
+    }
+    .logo { font-weight: 800; font-size: 1.1rem; color: white; white-space: nowrap; }
+    .logo span { color: var(--gold2); }
+    .divider-v { width: 1px; height: 22px; background: rgba(255,255,255,0.15); }
+    .search-wrap { flex: 1; max-width: 300px; position: relative; }
+    .search-wrap input { width: 100%; padding: 8px 14px 8px 36px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: white; font-size: 0.83rem; outline: none; font-family: inherit; }
+    .search-wrap input::placeholder { color: rgba(255,255,255,0.4); }
+    .search-wrap input:focus { border-color: var(--gold2); }
+    .search-wrap .si { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+    .filters { display: flex; gap: 6px; flex: 1; overflow-x: auto; }
+    .filters::-webkit-scrollbar { display: none; }
+    .fbtn { padding: 5px 13px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.6); font-size: 0.73rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: inherit; }
+    .fbtn:hover, .fbtn.active { border-color: var(--gold2); color: var(--gold2); background: rgba(240,192,64,0.12); }
+    
+    /* NEW: Disease filter buttons (Heart/Stroke) */
+    .disease-filters { display: flex; gap: 8px; margin-left: 10px; }
+    .disease-btn { padding: 5px 16px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.2); background: transparent; color: rgba(255,255,255,0.7); font-size: 0.73rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .disease-btn.heart-active { background: #C0392B; border-color: #C0392B; color: white; }
+    .disease-btn.stroke-active { background: #D4A017; border-color: #D4A017; color: white; }
+    .disease-btn:hover { transform: translateY(-1px); }
+    
+    .locate-btn { padding: 8px 16px; border-radius: 8px; background: var(--gold); border: none; color: var(--navy); font-weight: 700; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: inherit; }
+    .locate-btn:hover { background: var(--gold2); }
+    .back-btn { padding: 7px 14px; border-radius: 8px; background: transparent; border: 1.5px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+    .back-btn:hover { border-color: var(--gold2); color: var(--gold2); }
+
+    /* ── LAYOUT ── */
+    .main { flex: 1; display: flex; overflow: hidden; }
+
+    /* ── SIDE PANEL ── */
+    .panel { width: 310px; flex-shrink: 0; background: var(--cream); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+    .panel-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--warm); }
+    .panel-head h3 { font-size: 0.82rem; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; }
+    .count { font-size: 0.72rem; color: #888; font-weight: 500; }
+
+    /* LEGEND */
+    .legend { padding: 10px 16px; display: flex; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: white; }
+    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #666; font-weight: 500; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+    .list { flex: 1; overflow-y: auto; padding: 10px; }
+    .list::-webkit-scrollbar { width: 3px; }
+    .list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .ccard { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+    .ccard:hover { border-color: var(--gold); box-shadow: 0 2px 12px rgba(212,160,23,0.15); }
+    .ccard.selected { border-color: var(--gold); background: #FFFBF0; box-shadow: 0 2px 16px rgba(212,160,23,0.2); }
+    .ccard-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+    .type-pill { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 8px; border-radius: 4px; }
+    .p-hospital   { background: #FFEBEE; color: #C0392B; }
+    .p-pharmacy   { background: #E8F5E9; color: #27AE60; }
+    .p-diagnostic { background: #FFF9E6; color: #B8860B; }
+    .p-rehab      { background: #FCE4EC; color: #AD1457; }
+    .rating { font-size: 0.72rem; color: #F39C12; font-weight: 600; }
+    .cname { font-weight: 700; font-size: 0.88rem; color: var(--navy); margin-bottom: 3px; line-height: 1.3; }
+    .addr { font-size: 0.72rem; color: #888; margin-bottom: 8px; }
+    .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stat-chip { font-size: 0.68rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+    .sc-doc  { background: #EEF2FF; color: #3730A3; }
+    .sc-icu  { background: #FFF0F0; color: #991B1B; }
+    .sc-emg  { background: #FFF7ED; color: #92400E; }
+    .sc-amb  { background: #F0FDF4; color: #166534; }
+    .dist-row { margin-top: 8px; font-size: 0.72rem; color: var(--gold); font-weight: 600; }
+    
+    /* Booking button on card */
+    .booking-btn { margin-top: 10px; padding: 6px 12px; background: var(--navy); color: white; border: none; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.2s; }
+    .booking-btn:hover { background: var(--rust); }
+
+    /* DISTANCE PANEL */
+    .dist-panel { padding: 14px 16px; border-top: 1px solid var(--border); background: #FFFBF0; display: none; }
+    .dist-panel.show { display: block; }
+    .dist-panel h4 { font-size: 0.72rem; font-weight: 800; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .dist-boxes { display: flex; gap: 8px; margin-bottom: 10px; }
+    .dbox { flex: 1; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+    .dbox .dval { font-size: 1.1rem; font-weight: 800; color: var(--rust); }
+    .dbox .dlbl { font-size: 0.65rem; color: #888; margin-top: 2px; }
+    .route-btn { width: 100%; padding: 9px; border-radius: 8px; border: none; background: var(--navy); color: white; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .route-btn:hover { background: var(--rust); }
+
+    /* ── MAP (Clean light background) ── */
+    #map { flex: 1; background: #e8e4dc; }
+    
+    /* Custom markers - clean and intuitive */
+    .mk-wrap { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 2px solid white; position: relative; }
+    .mk-amb { position: absolute; top: -6px; right: -6px; width: 14px; height: 14px; background: #27AE60; border-radius: 50%; border: 1.5px solid white; font-size: 0; }
+    .mk-amb::after { content: "🚑"; font-size: 8px; position: absolute; top: 1px; left: 1px; }
+
+    .leaflet-routing-container { background: white !important; border-radius: 12px !important; border: 1px solid var(--border) !important; font-family: 'Plus Jakarta Sans', sans-serif !important; font-size: 0.78rem !important; max-height: 200px !important; overflow-y: auto !important; }
+    .leaflet-popup-content-wrapper { border-radius: 14px !important; background: white !important; border: 1.5px solid var(--gold) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important; }
+    .leaflet-popup-tip { background: white !important; }
+    .pop-name { font-weight: 800; font-size: 0.9rem; color: var(--navy); margin-bottom: 3px; }
+    .pop-type { font-size: 0.72rem; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+    .pop-row  { font-size: 0.75rem; color: #555; margin-bottom: 3px; }
+    .pop-dist { font-size: 0.75rem; color: var(--rust); font-weight: 700; margin: 6px 0; }
+    .pop-btn, .pop-booking { padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.72rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px; font-family: inherit; }
+    .pop-btn { background: var(--navy); color: white; }
+    .pop-btn:hover { background: var(--rust); }
+    .pop-booking { background: var(--gold); color: var(--navy); }
+    .pop-booking:hover { background: var(--gold2); }
+
+    .empty { text-align: center; padding: 30px 16px; color: #aaa; font-size: 0.82rem; }
+    
+    /* Booking Modal */
+    .booking-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    .booking-modal-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 90%; border-top: 5px solid var(--gold); }
+    .booking-modal-content h3 { color: var(--navy); margin-bottom: 16px; }
+    .booking-modal-content select, .booking-modal-content input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+    .booking-submit { background: var(--gold); border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: 700; margin-top: 12px; cursor: pointer; }
+    .booking-close { float: right; font-size: 24px; cursor: pointer; color: #999; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="back-btn">← Back</a>
+  <div class="logo">Cardio<span>Map</span></div>
+  <div class="divider-v"></div>
+  <div class="search-wrap">
+    <span class="si">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search centers by name..." oninput="render()"/>
+  </div>
+  <div class="filters">
+    <button class="fbtn active" onclick="setFilter('all',this)">All</button>
+    <button class="fbtn" onclick="setFilter('Hospital',this)">Hospitals</button>
+    <button class="fbtn" onclick="setFilter('Pharmacy',this)">Pharmacies</button>
+    <button class="fbtn" onclick="setFilter('Diagnostic Center',this)">Diagnostic</button>
+    <button class="fbtn" onclick="setFilter('Rehab Center',this)">Rehab</button>
+  </div>
+  <!-- NEW: Heart/Stroke disease filter buttons -->
+  <div class="disease-filters">
+    <button class="disease-btn" id="heartFilterBtn" onclick="toggleHeartFilter()">❤️ Heart Care</button>
+    <button class="disease-btn" id="strokeFilterBtn" onclick="toggleStrokeFilter()">🧠 Stroke Care</button>
+  </div>
+  <button class="locate-btn" onclick="locateMe()">📍 My Location</button>
+</div>
+
+<div class="main">
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Healthcare Centers</h3>
+      <span class="count" id="cnt">0 found</span>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#C0392B;border-radius:50%"></div>Hospital</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#27AE60;border-radius:50%"></div>Pharmacy</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#D4A017;border-radius:50%"></div>Diagnostic</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#AD1457;border-radius:50%"></div>Rehab</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#27AE60;border-radius:50%"></div>🚑 Ambulance</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#C0392B;border-radius:50%"></div>❤️ Heart Care</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#D4A017;border-radius:50%"></div>🧠 Stroke Care</div>
+    </div>
+
+    <div class="list" id="list"></div>
+
+    <div class="dist-panel" id="distPanel">
+      <h4>📍 Selected Center Distance</h4>
+      <div class="dist-boxes">
+        <div class="dbox"><div class="dval" id="dkm">—</div><div class="dlbl">Kilometers</div></div>
+        <div class="dbox"><div class="dval" id="dmin">—</div><div class="dlbl">Est. Drive Time</div></div>
+      </div>
+      <button class="route-btn" onclick="drawRoute()">Show Road Route on Map</button>
+    </div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="booking-modal">
+  <div class="booking-modal-content">
+    <span class="booking-close" onclick="closeBookingModal()">&times;</span>
+    <h3 id="bookingCenterName">Book Service</h3>
+    <select id="bookingType">
+      <option value="appointment">📅 Book Appointment</option>
+      <option value="ambulance">🚑 Request Ambulance</option>
+      <option value="bed">🛏️ Reserve Bed (ICU/Emergency)</option>
+    </select>
+    <input type="text" id="bookingDate" placeholder="Date (YYYY-MM-DD)" value="2025-05-01">
+    <input type="text" id="bookingTime" placeholder="Time (HH:MM)" value="10:00">
+    <button class="booking-submit" onclick="submitBooking()">Confirm Booking</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script>
+  // ── Map - Clean light background (CartoDB Voyager - light theme) ──
+  const map = L.map('map', { zoomControl: false }).setView([22.3650, 91.8300], 14);
+
+  // Clean, light-colored map tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+    minZoom: 10
+  }).addTo(map);
+
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+
+  // ── Expanded Data (aligned with your database) ──
+  const facilities = [
+    { id:1, centerID:'C001', name:'Chittagong Medical College Hospital', type:'Hospital', lat:22.3384, lng:91.8317, addr:'K.B. Fazlul Kader Rd', phone:'031-630226', doctors:184, icuBeds:42, emergencyBeds:68, rating:4.2, ambulance:true, heartCare:true, strokeCare:true },
+    { id:2, centerID:'C002', name:'Parkview Hospital', type:'Hospital', lat:22.3632, lng:91.8201, addr:'Muradpur', phone:'031-711111', doctors:92, icuBeds:18, emergencyBeds:30, rating:4.5, ambulance:true, heartCare:true, strokeCare:true },
+    { id:3, centerID:'C003', name:'National Heart Foundation Hospital', type:'Hospital', lat:22.3520, lng:91.8250, addr:'Nasirabad', phone:'031-655000', doctors:95, icuBeds:28, emergencyBeds:35, rating:4.6, ambulance:true, heartCare:true, strokeCare:false },
+    { id:4, centerID:'C004', name:'Max Hospital & Cardiac Centre', type:'Hospital', lat:22.3701, lng:91.8354, addr:'GEC Circle', phone:'031-720000', doctors:112, icuBeds:24, emergencyBeds:40, rating:4.3, ambulance:true, heartCare:true, strokeCare:true },
+    { id:5, centerID:'C005', name:'Metro Heart & General Hospital', type:'Hospital', lat:22.3780, lng:91.8290, addr:'Nasirabad', phone:'031-650101', doctors:135, icuBeds:30, emergencyBeds:45, rating:4.6, ambulance:true, heartCare:true, strokeCare:true },
+    { id:6, centerID:'C006', name:'Holy Crescent Hospital', type:'Hospital', lat:22.3290, lng:91.8140, addr:'Agrabad', phone:'031-713777', doctors:78, icuBeds:12, emergencyBeds:22, rating:4.0, ambulance:true, heartCare:true, strokeCare:false },
+    { id:7, centerID:'C007', name:'Islami Bank Hospital', type:'Hospital', lat:22.3450, lng:91.8265, addr:'Lalkhan Bazar', phone:'031-617891', doctors:95, icuBeds:20, emergencyBeds:35, rating:4.2, ambulance:true, heartCare:true, strokeCare:false },
+    { id:8, centerID:'C008', name:'Southern Medical College Hospital', type:'Hospital', lat:22.3310, lng:91.8390, addr:'Mehedibag', phone:'031-633201', doctors:156, icuBeds:36, emergencyBeds:55, rating:3.9, ambulance:true, heartCare:true, strokeCare:true },
+    { id:9, centerID:'C009', name:'Popular Diagnostic Centre', type:'Diagnostic Center', lat:22.3660, lng:91.8330, addr:'OR Nizam Road', phone:'031-724456', doctors:34, icuBeds:0, emergencyBeds:6, rating:4.4, ambulance:false, heartCare:true, strokeCare:true },
+    { id:10, centerID:'C010', name:'Ibn Sina Diagnostic', type:'Diagnostic Center', lat:22.3750, lng:91.8270, addr:'Nasirabad', phone:'031-659900', doctors:28, icuBeds:0, emergencyBeds:4, rating:4.3, ambulance:false, heartCare:true, strokeCare:true },
+    { id:11, centerID:'C011', name:'Medinova Chittagong', type:'Diagnostic Center', lat:22.3300, lng:91.8160, addr:'Agrabad', phone:'031-716500', doctors:22, icuBeds:0, emergencyBeds:2, rating:4.1, ambulance:false, heartCare:false, strokeCare:true },
+    { id:12, centerID:'C012', name:'Lazz Pharma (24/7)', type:'Pharmacy', lat:22.3690, lng:91.8340, addr:'GEC Circle', phone:'031-720500', doctors:3, icuBeds:0, emergencyBeds:0, rating:4.7, ambulance:false, heartCare:true, strokeCare:true },
+    { id:13, centerID:'C013', name:'Nipa Pharmacy', type:'Pharmacy', lat:22.3280, lng:91.8130, addr:'Agrabad', phone:'031-714200', doctors:2, icuBeds:0, emergencyBeds:0, rating:4.2, ambulance:false, heartCare:true, strokeCare:true },
+    { id:14, centerID:'C014', name:'Alam Pharmacy & Clinic', type:'Pharmacy', lat:22.3620, lng:91.8180, addr:'Muradpur', phone:'031-701111', doctors:4, icuBeds:0, emergencyBeds:2, rating:4.0, ambulance:true, heartCare:true, strokeCare:false },
+    { id:15, centerID:'C015', name:'CRP Rehab Centre', type:'Rehab Center', lat:22.3580, lng:91.8240, addr:'Panchlaish', phone:'031-655400', doctors:18, icuBeds:6, emergencyBeds:12, rating:4.8, ambulance:true, heartCare:false, strokeCare:true },
+    { id:16, centerID:'C016', name:'Chittagong Physiotherapy & Rehab', type:'Rehab Center', lat:22.3210, lng:91.7980, addr:'Halishahar', phone:'031-740200', doctors:12, icuBeds:4, emergencyBeds:8, rating:4.2, ambulance:false, heartCare:false, strokeCare:true }
+  ];
+
+  // ── State ──
+  let markers = {};
+  let userLatLng = null;
+  let userMarker = null;
+  let selectedFacility = null;
+  let routingControl = null;
+  let currentFilter = 'all';
+  let heartFilterActive = false;
+  let strokeFilterActive = false;
+  let currentUser = null; // Stores logged-in user info
+
+  // Check if user is logged in (from localStorage or session)
+  function isLoggedIn() {
+    const user = localStorage.getItem('cardioMapUser');
+    if (user) {
+      currentUser = JSON.parse(user);
+      return true;
+    }
+    return false;
+  }
+
+  function showLoginPrompt(callback) {
+    if (confirm("You need to log in to book services. Go to Login page?")) {
+      window.location.href = 'index.html';
+    }
+  }
+
+  // ── Marker icons (clean, intuitive, round) ──
+  function makeMarkerIcon(type, hasAmbulance, hasHeart, hasStroke) {
+    let bgColor, iconText;
+    switch(type) {
+      case 'Hospital': bgColor = '#C0392B'; iconText = '🏥'; break;
+      case 'Pharmacy': bgColor = '#27AE60'; iconText = '💊'; break;
+      case 'Diagnostic Center': bgColor = '#D4A017'; iconText = '🔬'; break;
+      case 'Rehab Center': bgColor = '#AD1457'; iconText = '🧘'; break;
+      default: bgColor = '#666'; iconText = '🏥';
+    }
+    // Add heart/stroke indicators
+    let badge = '';
+    if (hasHeart && hasStroke) badge = '❤️🧠';
+    else if (hasHeart) badge = '❤️';
+    else if (hasStroke) badge = '🧠';
+    
+    const ambHtml = hasAmbulance ? '<div class="mk-amb"></div>' : '';
+    const badgeHtml = badge ? `<div style="position:absolute; bottom:-4px; right:-4px; background:white; border-radius:10px; padding:0 3px; font-size:8px; font-weight:bold;">${badge}</div>` : '';
+    
+    return L.divIcon({
+      className: '',
+      html: `<div class="mk-wrap" style="background:${bgColor}">${iconText}${ambHtml}${badgeHtml}</div>`,
+      iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -34]
+    });
+  }
+
+  function dist(a, b) {
+    const R = 6371, dLat = (b[0]-a[0])*Math.PI/180, dLon = (b[1]-a[1])*Math.PI/180;
+    const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  }
+
+  function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    let filtered = facilities.filter(f => {
+      const mf = currentFilter === 'all' || f.type === currentFilter;
+      const ms = f.name.toLowerCase().includes(q) || f.addr.toLowerCase().includes(q);
+      let diseaseMatch = true;
+      if (heartFilterActive) diseaseMatch = diseaseMatch && f.heartCare === true;
+      if (strokeFilterActive) diseaseMatch = diseaseMatch && f.strokeCare === true;
+      return mf && ms && diseaseMatch;
+    });
+
+    Object.values(markers).forEach(m => map.removeLayer(m));
+    markers = {};
+    document.getElementById('cnt').textContent = filtered.length + ' found';
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="empty">No centers match your search.</div>';
+      return;
+    }
+
+    filtered.forEach(f => {
+      const d = userLatLng ? dist(userLatLng, [f.lat, f.lng]) : null;
+      const pillClass = f.type === 'Hospital' ? 'p-hospital' : f.type === 'Pharmacy' ? 'p-pharmacy' : f.type === 'Diagnostic Center' ? 'p-diagnostic' : 'p-rehab';
+      const diseaseBadges = [];
+      if (f.heartCare) diseaseBadges.push('❤️ Heart Care');
+      if (f.strokeCare) diseaseBadges.push('🧠 Stroke Care');
+      const diseaseHtml = diseaseBadges.length ? `<div style="font-size:0.65rem; color:#888; margin-top:5px;">${diseaseBadges.join(' · ')}</div>` : '';
+
+      const card = document.createElement('div');
+      card.className = 'ccard';
+      card.id = 'card-' + f.id;
+      card.innerHTML =
+        '<div class="ccard-top">' +
+          '<span class="type-pill ' + pillClass + '">' + f.type + '</span>' +
+          '<span class="rating">★ ' + f.rating + '</span>' +
+        '</div>' +
+        '<div class="cname">' + f.name + '</div>' +
+        '<div class="addr">📍 ' + f.addr + ' · 📞 ' + f.phone + '</div>' +
+        '<div class="stats-row">' +
+          '<span class="stat-chip sc-doc">👨‍⚕️ ' + f.doctors + ' Doctors</span>' +
+          (f.icuBeds > 0 ? '<span class="stat-chip sc-icu">🏥 ' + f.icuBeds + ' ICU</span>' : '') +
+          (f.emergencyBeds > 0 ? '<span class="stat-chip sc-emg">🚨 ' + f.emergencyBeds + ' Emerg</span>' : '') +
+          (f.ambulance ? '<span class="stat-chip sc-amb">🚑 Ambulance</span>' : '') +
+        '</div>' +
+        diseaseHtml +
+        (d ? '<div class="dist-row">📏 ' + d.toFixed(1) + ' km away</div>' : '') +
+        '<button class="booking-btn" onclick="openBooking(\'' + f.id + '\', \'' + f.name.replace(/'/g, "\\'") + '\')">📅 Book Service</button>';
+      card.onclick = (e) => { if(e.target.className !== 'booking-btn') selectFacility(f); };
+      list.appendChild(card);
+
+      const icon = makeMarkerIcon(f.type, f.ambulance, f.heartCare, f.strokeCare);
+      const m = L.marker([f.lat, f.lng], { icon }).addTo(map);
+      const loggedInStatus = isLoggedIn() ? `<button class="pop-booking" onclick="openBooking('${f.id}', '${f.name.replace(/'/g, "\\'")}')">📅 Book Appointment/Ambulance</button>` : '<button class="pop-booking" onclick="showLoginPrompt()">🔐 Login to Book</button>';
+      m.bindPopup(
+        '<div class="pop-name">' + f
